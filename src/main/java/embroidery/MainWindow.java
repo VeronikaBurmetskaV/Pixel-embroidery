@@ -8,6 +8,7 @@ import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 
 public class MainWindow extends JFrame {
 
@@ -17,9 +18,12 @@ public class MainWindow extends JFrame {
     private JButton startButton;
     private final Grid grid;
 
+    private JComboBox<Integer> rowsComboBox;
+    private JComboBox<Integer> colsComboBox;
+
     private Panel panel;
 
-    private Color selectedColor = Color.RED;
+    private Color selectedColor = Color.red;
 
     public MainWindow() {
 
@@ -28,7 +32,7 @@ public class MainWindow extends JFrame {
         setTitle("Піксельна вишивка|Редактор орнаменту|Бурмецька Вероніка");
         setSize(900, 900);
         setResizable(false);
-         setLocationRelativeTo(null);
+        setLocationRelativeTo(null);
 
         String backUrl = "https://img.magnific.com/premium-vector/embroidery-ukrainian-national-ornament-decoration-vector-illustration_324757-1245.jpg?semt=ais_hybrid&w=740&q=80";
         mainPanel = new Ornament(backUrl, this);
@@ -83,12 +87,26 @@ public class MainWindow extends JFrame {
         mainPanel.removeAll();
         mainPanel.page=true;
 
+        new Thread(() -> {
+            try{
+                String back2Url = "https://img.freepik.com/premium-vector/vector-frame-with-ukrainian-ornament-square-seamless-pattern-square-frame_539065-130.jpg?semt=ais_hybrid&w=740&q=80";
+                URL url2 = new URL(back2Url);
+                Image image2 = new ImageIcon(url2).getImage();
+
+                mainPanel.backgroundImage = image2;
+                SwingUtilities.invokeLater(()-> mainPanel.repaint());
+            }
+            catch(Exception e){}
+
+        }).start();
+
         colorButton = new JButton("Вибрати колір");
-        colorButton.setBounds(20, 20, 150, 30);
+        colorButton.setBounds(390, 696, 130, 30);
         colorButton.setBackground(selectedColor);
         colorButton.setForeground(Color.black);
+        colorButton.setFont(new Font("Segoe UI", Font.BOLD, 13));
         colorButton.addActionListener(e -> {
-            Color color = JColorChooser.showDialog(this, "Оберіть колір вишивки", selectedColor);
+            Color color = JColorChooser.showDialog(this, "Оберіть колір", selectedColor);
             if (color != null) {
                 selectedColor = color;
                 colorButton.setBackground(selectedColor);
@@ -96,18 +114,55 @@ public class MainWindow extends JFrame {
         });
         mainPanel.add(colorButton);
 
-        panel = new Panel(this);
-        mainPanel.add(panel);
+        JLabel sizeLabel = new JLabel("Розмір:");
+        sizeLabel.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        sizeLabel.setBounds(166, 340, 70, 30);
+        mainPanel.add(sizeLabel);
+
+        Integer[] sizes = {10, 15, 20, 25};
+
+        rowsComboBox = new JComboBox<>(sizes);
+        rowsComboBox.setSelectedItem(getGrid().rows);
+        rowsComboBox.setBounds(160, 380, 70, 30);
+        mainPanel.add(rowsComboBox);
+
+        JLabel xLabel = new JLabel("x");
+        xLabel.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        xLabel.setBounds(190, 400, 50, 30);
+        mainPanel.add(xLabel);
+
+        colsComboBox = new JComboBox<>(sizes);
+        colsComboBox.setSelectedItem(getGrid().cols);
+        colsComboBox.setBounds(160, 424, 70, 30);
+        mainPanel.add(colsComboBox);
+
+        JButton resizeButton = new JButton("ok");
+        resizeButton.setBounds(170,464,50,30);
+        resizeButton.addActionListener(e -> {
+            int newRows = (int) rowsComboBox.getSelectedItem();
+            int newCols = (int) colsComboBox.getSelectedItem();
+
+            getGrid().resize(newRows, newCols);
+
+            getMainPanel().repaint();
+        });
+        mainPanel.add(resizeButton);
 
         JButton saveButton = new JButton("Зберегти PNG");
-        saveButton.setBounds(680, 20, 150, 30);
+        saveButton.setBounds(250, 170, 120, 30);
+        saveButton.setFont(new Font("Segoe UI", Font.BOLD, 13));
         saveButton.addActionListener(e -> saveToPNG());
         mainPanel.add(saveButton);
 
         JButton openButton = new JButton("Відкрити PNG");
-        openButton.setBounds(680, 60, 150, 30);
+        openButton.setBounds(528, 170, 120, 30);
+        openButton.setFont(new Font("Segoe UI", Font.BOLD, 13));
         openButton.addActionListener(e -> openFromPNG());
         mainPanel.add(openButton);
+
+        panel = new Panel(this);
+        panel.setBounds(30, 630, 860, 60);
+        mainPanel.add(panel);
 
         MouseAdapter mouseHandler = new MouseAdapter() {
             @Override
@@ -147,14 +202,8 @@ public class MainWindow extends JFrame {
         }
     }
 
-    public void setSelectedColor(Color color) {
-        this.selectedColor = color;
-    }
     public Grid getGrid() {
         return grid;
-    }
-    public Panel getPanel() {
-        return panel;
     }
     public Ornament getMainPanel() {
         return mainPanel;
@@ -171,10 +220,8 @@ public class MainWindow extends JFrame {
             g2.dispose();
             try {
                 ImageIO.write(bImg, "png", file);
-                JOptionPane.showMessageDialog(this, "Схему успішно збережено!");
-            } catch (IOException ex) {
-               // ex.printStackTrace();
-            }
+                JOptionPane.showMessageDialog(this, "Схему збережено!");
+            } catch (IOException ex) {}
         }
     }
 
@@ -183,11 +230,36 @@ public class MainWindow extends JFrame {
         if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
             try {
                 BufferedImage loadedImage = ImageIO.read(fileChooser.getSelectedFile());
-                mainPanel.backgroundImage = loadedImage;
+
+                getGrid().clear();
+
+                int totalWidth = grid.cols * mainPanel.cellSize;
+                int totalHeight = grid.rows * mainPanel.cellSize;
+                int startX = (mainPanel.getWidth() - totalWidth) / 2;
+                int startY = (mainPanel.getHeight() - totalHeight) / 2;
+
+                for (int r = 0; r < grid.rows; r++) {
+                    for (int c = 0; c < grid.cols; c++) {
+
+                        int centerX = startX + c * mainPanel.cellSize + (mainPanel.cellSize / 2);
+                        int centerY = startY + r * mainPanel.cellSize + (mainPanel.cellSize / 2);
+
+                        if (centerX >= 0 && centerX < loadedImage.getWidth() &&
+                                centerY >= 0 && centerY < loadedImage.getHeight()) {
+
+                            int rgb = loadedImage.getRGB(centerX, centerY);
+                            Color color = new Color(rgb, true);
+
+                            if (color.getAlpha() > 10 && !(color.getRed() > 240 && color.getGreen() > 240 && color.getBlue() > 240)) {
+                                grid.setColor(r, c, color);
+                            }
+                        }
+                    }
+                }
+
                 mainPanel.repaint();
                JOptionPane.showMessageDialog(this, "Схему завантажено!");
             } catch (IOException ex) {}
-            //{ ex.printStackTrace(); }
         }
     }
 }

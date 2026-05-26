@@ -8,7 +8,7 @@ import java.net.URL;
 
         public boolean page = false;
 
-        private Image welcomeimage;
+        private Image ornamentImage;
         public Image backgroundImage;
 
         private MainWindow frame;
@@ -49,7 +49,7 @@ import java.net.URL;
             this.frame=frame;
             try {
                 URL url = new URL(urlString);
-                welcomeimage = new ImageIcon(url).getImage();
+                ornamentImage = new ImageIcon(url).getImage();
             } catch (Exception e) {
                 System.out.println(e);
             }
@@ -71,7 +71,6 @@ import java.net.URL;
                 repaint();
             });
             timer.start();
-
         }
 
         @Override
@@ -107,9 +106,9 @@ import java.net.URL;
                         g2d.setColor(Color.LIGHT_GRAY);
                         g2d.drawRect(x, y, cellSize, cellSize);
 
-                        Color pixelColor = model.getColor(r, c);
-                        if (pixelColor != null) {
-                            g2d.setColor(pixelColor);
+                        Color cellColor = frame.getGrid().getColor(r, c);
+                        if (cellColor != null) {
+                            g2d.setColor(cellColor);
                             g2d.setStroke(new BasicStroke(thickness, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
                             int p = 4;
                             g2d.drawLine(x + p, y + p, x + cellSize - p, y + cellSize - p);
@@ -119,8 +118,8 @@ import java.net.URL;
                 }
                 return;
             }
-            if (welcomeimage != null) {
-                g.drawImage(welcomeimage, 0, 0, getWidth(), getHeight(), this);
+            if (ornamentImage != null) {
+                g.drawImage(ornamentImage, 0, 0, getWidth(), getHeight(), this);
             }
             for (int row = 0; row < pattern.length; row++) {
                 for (int col = 0; col < pattern[row].length; col++) {

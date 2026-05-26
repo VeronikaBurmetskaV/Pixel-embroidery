@@ -4,10 +4,17 @@ import java.awt.*;
 
 public class Grid {
 
-    public final int rows = 25;
-    public final int cols = 25;
+    public int rows = 25;
+    public int cols = 25;
 
-    private final Color[][] editGrid = new Color[rows][cols];
+    private Color[][] editGrid = new Color[rows][cols];
+
+    public void resize(int newRows, int newCols) {
+        this.rows= newRows;
+        this.cols= newCols;
+
+        this.editGrid = new Color[newRows][newCols];
+    }
 
     public void clear() {
         for(int row = 0; row < rows; row++) {
